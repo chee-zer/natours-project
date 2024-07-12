@@ -31,6 +31,15 @@ exports.getAllTours = async (req, res) => {
     } else {
       query.sort('duration');
     }
+
+    //4) Field limiting
+    if (req.query.fields) {
+      let fields = req.query.fields.split(',').join(' ');
+      query.select(fields);
+    } else {
+      query.select('-__v');
+    }
+
     //here we execute the query
     const tours = await query;
 
