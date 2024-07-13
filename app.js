@@ -15,4 +15,22 @@ app.use(express.static(`${__dirname}/public`));
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 
+app.all('*', (req, res, next) => {
+  const err = new Error(`Cannot find ${req.url} in server`);
+  err.statusCode = 404;
+  err.status = 'fail';
+
+  next(err);
+});
+
+app.use((err, req, res, next) => {
+  err.status = err.status || 'error';
+  err.statusCode = err.statusCode || '500';
+
+  res.status(err.statusCode).json({
+    status: err.status,
+    message: err.message,
+  });
+});
+
 module.exports = app;
