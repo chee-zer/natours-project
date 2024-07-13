@@ -1,4 +1,5 @@
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('./../utils/apiFeatures');
 
 exports.getAllTours = async (req, res) => {
   try {
@@ -13,42 +14,47 @@ exports.getAllTours = async (req, res) => {
 
     //here we build the query(no awaiting for the result, since that executes it)
 
-    //1) Filtering
-    const queryObj = { ...req.query };
-    const excludedFields = ['page', 'sort', 'limit', 'fields'];
-    excludedFields.forEach((el) => delete queryObj[el]);
+    const features = new APIFeatures(Tour.find(), req.query);
+    features.filter().sort().limitFields().paginate();
+    const tours = await features.query;
 
-    //2) Advanced Filtering
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-    const query = Tour.find(JSON.parse(queryStr));
+    // //1) Filtering
+    // const queryObj = { ...req.query };
+    // const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    // excludedFields.forEach((el) => delete queryObj[el]);
 
-    //3) Sorting
-    let sortFields = req.query.sort;
-    if (sortFields) {
-      sortFields = sortFields.split(',').join(' ');
-      query.sort(sortFields);
-    } else {
-      query.sort('duration');
-    }
+    // //2) Advanced Filtering
+    // let queryStr = JSON.stringify(queryObj);
+    // queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    // const query = Tour.find(JSON.parse(queryStr));
 
-    //4) Field limiting
-    if (req.query.fields) {
-      let fields = req.query.fields.split(',').join(' ');
-      query.select(fields);
-    } else {
-      query.select('-__v');
-    }
+    // //3) Sorting
+    // let sortFields = req.query.sort;
+    // if (sortFields) {
+    //   sortFields = sortFields.split(',').join(' ');
+    //   query.sort(sortFields);
+    // } else {
+    //   query.sort('duration');
+    // }
 
-    // 5) Pagination
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 8;
-    //1 1, 2 6, 3 11
-    const skip = (page - 1) * limit;
-    query.skip(skip).limit(limit);
+    // //4) Field limiting
+    // if (req.query.fields) {
+    //   let fields = req.query.fields.split(',').join(' ');
+    //   query.select(fields);
+    // } else {
+    //   query.select('-__v');
+    // }
 
+    // // 5) Pagination
+    // const page = req.query.page * 1 || 1;
+    // const limit = req.query.limit * 1 || 8;
+    // //1 1, 2 6, 3 11
+    // const skip = (page - 1) * limit;
+    // query.skip(skip).limit(limit);
+
+    //NOTE: i have not done any aliasing im bored check if you want
     //here we execute the query
-    const tours = await query;
+    // const tours = await query;
 
     res.status(200).json({
       status: 'success',
