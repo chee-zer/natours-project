@@ -7,7 +7,15 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateErrorDB = (err) => {
-  const message = `Duplicate error`;
+  const existingName = err.errmsg.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/);
+  const message = `Invalid data, matches with: ${existingName}`;
+  return new AppError(message, 400);
+};
+
+const handleValidationErrorDB = (err) => {
+  const errors = Object.values(err.errors).map((el) => el.message);
+
+  const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400);
 };
 
@@ -44,8 +52,10 @@ const globalErrorHandler = (err, req, res, next) => {
     errorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
     let error = Object.create(err);
+    console.log(error);
     if (err.name === 'CastError') error = handleCastErrorDB(error);
     if (err.code === 11000) error = handleDuplicateErrorDB(error);
+    if (err.name === `ValidationError`) error = handleValidationErrorDB(error);
 
     errorProd(error, res);
   } else {
