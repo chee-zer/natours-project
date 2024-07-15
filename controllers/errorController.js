@@ -1,3 +1,11 @@
+const AppError = require('./../utils/appError');
+const dotenv = require('dotenv').config({ path: './config.env' });
+
+const handleCastErrorDB = (err) => {
+  const message = `Invalid ${err.path}: ${err.value}`;
+  return new AppError(message, 400);
+};
+
 const errorProd = (err, res) => {
   if (err.isOperational) {
     res.status(err.statusCode).json({
@@ -27,10 +35,16 @@ const globalErrorHandler = (err, req, res, next) => {
   err.status = err.status || 'error';
   err.statusCode = err.statusCode || 500;
 
-  if (process.env.NODE_ENV === 'DEVELOPMENT') {
+  if (process.env.NODE_ENV === 'development') {
     errorDev(err, res);
-  } else if (process.env.NODE_ENV === 'PRODUCTION') {
-    errorProd(err, res);
+  } else if (process.env.NODE_ENV === 'production') {
+    let error = Object.create(err);
+    if (err.name === 'CastError') error = handleCastErrorDB(error);
+
+    errorProd(error, res);
+  } else {
+    console.log(`${process.env.NODE_ENV}a`);
+    res.send('something happened');
   }
 };
 
