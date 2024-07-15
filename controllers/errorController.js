@@ -6,6 +6,11 @@ const handleCastErrorDB = (err) => {
   return new AppError(message, 400);
 };
 
+const handleDuplicateErrorDB = (err) => {
+  const message = `Duplicate error`;
+  return new AppError(message, 400);
+};
+
 const errorProd = (err, res) => {
   if (err.isOperational) {
     res.status(err.statusCode).json({
@@ -40,6 +45,7 @@ const globalErrorHandler = (err, req, res, next) => {
   } else if (process.env.NODE_ENV === 'production') {
     let error = Object.create(err);
     if (err.name === 'CastError') error = handleCastErrorDB(error);
+    if (err.code === 11000) error = handleDuplicateErrorDB(error);
 
     errorProd(error, res);
   } else {
