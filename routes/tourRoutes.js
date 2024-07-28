@@ -4,11 +4,13 @@ const express = require('express');
 const tourRouter = express.Router();
 
 tourRouter.route('/tour-stats').get(tourController.getTourStats);
+tourRouter.route('/monthly-plans/:year').get(tourController.getMonthlyPlan);
 
 tourRouter
   .route('/')
   .post(tourController.createTour)
   .get(tourController.getAllTours)
+
   .delete(tourController.deleteAllTours);
 
 tourRouter
