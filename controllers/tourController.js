@@ -136,20 +136,33 @@ exports.deleteAllTours = catchAsync(async (req, res) => {
 
 exports.getTourStats = async (req, res) => {
   try {
-    const stats = Tour.aggregate([
+    const stats = await Tour.aggregate([
       {
-        $match: { ratingsAverage: { $gte: 4.5 } },
+        $match: { ratingAverage: { $gte: 4 } },
       },
       {
         $group: {
-          id: null,
-          avgRating: { $avg: '$ratingsAverage' },
+          _id: '$difficulty',
+          numTours: { $sum: 1 },
+          avgRating: { $avg: '$ratingAverage' },
           avgPrice: { $avg: '$price' },
           minPrice: { $min: '$price' },
           maxPrice: { $max: '$price' },
         },
       },
+      {
+        $sort: { avgPrice: 1 },
+      },
+      // {
+      //   $match: { _id: { $ne: 'easy' } },
+      // },
     ]);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats: stats,
+      },
+    });
   } catch (error) {
     res.status(404).json({
       status: 'fail',
