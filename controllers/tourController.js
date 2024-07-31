@@ -1,12 +1,7 @@
 const AppError = require('../utils/appError');
 const Tour = require('./../models/tourModel');
 const APIFeatures = require('./../utils/apiFeatures');
-
-const catchAsync = (fn) => {
-  return (req, res, next) => {
-    fn(req, res, next).catch((err) => next(err));
-  };
-};
+const catchAsync = require('./../utils/catchAsync');
 
 exports.getAllTours = catchAsync(async (req, res) => {
   /*
