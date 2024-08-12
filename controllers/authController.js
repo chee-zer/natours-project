@@ -17,6 +17,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+
+    //testing
+    passwordChangedAt: req.body.passwordChangedAt,
   });
 
   const token = signToken(newUser._id);
@@ -71,10 +74,20 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   //check if user still exists
   const freshUser = await User.findById(decoded.id);
+  console.log(decoded);
+  console.log(freshUser.passwordChangedAt);
   if (!freshUser)
     return next(
       new AppError('The user belonging to this token does not exist'),
       401,
     );
+
+  //check if da user changed the da password
+  if (freshUser.passwordChangedAfterwards(decoded.iat)) {
+    return next(new AppError('Password was changed. Please login in again'));
+  }
+
+  //all checks over, send updated data to subsequent middleware
+  req.user = freshUser;
   next();
 });
