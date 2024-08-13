@@ -13,7 +13,11 @@ tourRouter
   .post(tourController.createTour)
   .get(authController.protect, tourController.getAllTours)
 
-  .delete(tourController.deleteAllTours);
+  .delete(
+    authController.protect,
+    authController.restrictedTo('admin', 'lead-guide'),
+    tourController.deleteAllTours,
+  );
 
 tourRouter
   .route('/:id')
