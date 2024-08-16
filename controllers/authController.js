@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const AppError = require('./../utils/appError');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
+const sendEmail = require('../utils/email');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -19,9 +20,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
 
-    //testing
+    // testing
     // passwordChangedAt: req.body.passwordChangedAt,
-    role: req.body.role,
+    // role: req.body.role,
   });
 
   const token = signToken(newUser._id);
@@ -111,5 +112,35 @@ exports.forgotPassword = async (req, res, next) => {
     return next(new AppError('No user found with this email address', 404));
 
   const resetToken = user.createPasswordResetToken();
+
+  //turning validation off to get rid of password requirement
+  //validate runs as the first pre-save hook when a document is saved
   await user.save({ validateBeforeSave: false });
+
+  //send the token to the user, unhashed obv
+  const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
+
+  const message = `submit a PATCH request with password and confirmPassword to: ${resetURL}`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'Reset password for natours',
+      text: message,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'token sent to email',
+    });
+  } catch (err) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError('There was an error sending the email. Try again later'),
+      500,
+    );
+  }
 };
