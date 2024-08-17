@@ -13,6 +13,15 @@ const signToken = (id) => {
   });
 };
 
+const sendToken = (user, statusCode, res) => {
+  const token = signToken(user.id);
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -25,15 +34,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     // role: req.body.role,
   });
 
-  const token = signToken(newUser._id);
-
-  res.status(200).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  sendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -47,17 +48,13 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.checkPassword(password, user.password)))
     return next(new AppError('Please enter valid username or password', 401));
   //send token to client
-  const token = signToken(user._id);
-
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  sendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
   let token;
 
+  console.log(`Authorization Header: ${req.headers.authorization}`);
   //first we have to check if the token exists
 
   if (
@@ -65,20 +62,27 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+    console.log(`Extracted Token: ${token}`);
   }
 
-  if (!token)
+  console.log(`Token null before check: ${token}`);
+
+  if (!token || token === 'null') {
+    console.log(`Token not found, returning error`);
     return next(
       new AppError('You are not logged in! Please log in to view content'),
     );
+  }
+
+  console.log(`Token null after check: ${token}`);
 
   //check the verification token
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
   //check if user still exists
   const freshUser = await User.findById(decoded.id);
-  console.log(decoded);
-  console.log(freshUser.passwordChangedAt);
+  console.log(decoded + ' protect function log btw');
+
   if (!freshUser)
     return next(
       new AppError('The user belonging to this token does not exist'),
@@ -170,10 +174,30 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   //Log in the user, send JWT
-  const token = signToken(user._id);
+  sendToken(user, 200, res);
+});
 
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  //since the user has logged in, so after protect function, thus we have the user in the request body
+  const user = await User.findById(req.user.id).select('+password');
+
+  //check password
+  if (!(await user.checkPassword(req.body.passwordCurrent, user.password))) {
+    return next(
+      new AppError(
+        'The Current password is wrong. Please enter the correct password',
+        401,
+      ),
+    );
+  }
+
+  //now update the password
+  user.password = req.body.passwordNew;
+  user.passwordConfirm = req.body.passwordNewConfirm;
+
+  //findByIdAndUpdate will not work, reason in validator part in userModel
+  await user.save();
+
+  //then sign the token
+  sendToken(user, 200, res);
 });
