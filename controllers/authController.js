@@ -152,7 +152,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     .update(req.params.token)
     .digest('hex');
 
-  const user = User.findOne({
+  const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   });
@@ -165,9 +165,8 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   user.passwordConfirm = req.body.passwordConfirm;
   user.passwordResetExpires = undefined;
   user.passwordResetToken = undefined;
+  console.log(`here`);
 
-  //change passwordChangedAt
-  user.passwordChangedAt = Date.now();
   await user.save();
 
   //Log in the user, send JWT
