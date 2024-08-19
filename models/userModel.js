@@ -80,7 +80,7 @@ userSchema.methods.checkPassword = async function (
 userSchema.methods.passwordChangedAfterwards = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTime = this.passwordChangedAt.getTime() / 1000;
-    if (JWTTimestamp < this.passwordChangedAt) {
+    if (JWTTimestamp < changedTime) {
       return true;
     }
   }

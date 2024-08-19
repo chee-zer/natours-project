@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
+const bcrypt = require('bcryptjs');
 
 const jwt = require('jsonwebtoken');
 const AppError = require('./../utils/appError');
@@ -42,6 +43,9 @@ exports.login = catchAsync(async (req, res, next) => {
   //first check if email and password exist
   if (!email || !password)
     return next(new AppError('Please enter your email and password', 400));
+
+  passwordhashed = await bcrypt.hash(password, 12);
+  console.log(passwordhashed);
   //then check if they are in the database
   const user = await User.findOne({ email }).select('+password');
 
@@ -67,7 +71,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   console.log(`Token null before check: ${token}`);
 
-  if (!token || token === 'null') {
+  if (!token) {
     console.log(`Token not found, returning error`);
     return next(
       new AppError('You are not logged in! Please log in to view content'),
