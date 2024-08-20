@@ -15,6 +15,12 @@ userRouter.patch(
   authController.updatePassword,
 );
 
+userRouter.delete(
+  '/deactivateMe',
+  authController.protect,
+  userController.deactivateUser,
+);
+
 userRouter.patch(
   '/updateUserData',
   authController.protect,

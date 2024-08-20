@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 //hash the password both when changing and creating passwords
@@ -50,12 +54,12 @@ userSchema.pre('save', async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
-~(
-  //change passwordChangedAt
-  userSchema.pre('save', async function (next) {
-    if (!this.isModified('password') || this.isNew) return next();
 
-    /*
+//change passwordChangedAt
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+
+  /*
   we subtract a second here to prevent the token being issued before passwordChangedAt.
   even tho the execution is paused by await, the database operations are not truly synchronous and operate asynchronously at a lower level.
   this added with the small delays between when the write operation completes and the data is fully propagated for read operations.
@@ -63,10 +67,14 @@ userSchema.pre('save', async function (next) {
   This is a good example of defensive programming, which adds a small buffer to account for potential edge cases or race conditions
   that can occur in a real world, high load application
   */
-    this.passwordChangedAt = Date.now() - 1000;
-    next();
-  })
-);
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  this.find({ active: { $ne: false } });
+  next();
+});
 
 //instance method to check password
 userSchema.methods.checkPassword = async function (

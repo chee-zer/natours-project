@@ -2,12 +2,13 @@ const catchAsync = require('../utils/catchAsync');
 const User = require('./../models/userModel');
 const AppError = require('../utils/appError');
 
-exports.getAllUsers = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'Route not yet defined',
+exports.getAllUsers = catchAsync(async (req, res, next) => {
+  const users = await User.find();
+  res.status(200).json({
+    status: 'success',
+    users,
   });
-};
+});
 
 exports.createUser = (req, res) => {
   res.status(500).json({
@@ -60,5 +61,24 @@ exports.updateUserData = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     updatedData,
+  });
+});
+
+exports.deactivateUser = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user)
+    return next(
+      new AppError(
+        'You are not logged in. Please log in to access the route',
+        401,
+      ),
+    );
+
+  await User.findByIdAndUpdate(req.user.id, { active: false });
+
+  res.status(200).json({
+    status: 'success',
+    data: null,
   });
 });
